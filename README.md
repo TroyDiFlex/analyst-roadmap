@@ -2,6 +2,8 @@
 
 Личный трекер системного обучения для первого трудоустройства на позиции, где анализируют табличные бизнес-данные: junior data analyst, BI/reporting analyst, marketing analyst и commercial analyst.
 
+**Сайт:** [troydiflex.github.io/analyst-roadmap](https://troydiflex.github.io/analyst-roadmap/)
+
 Это не roadmap под одну отрасль. Avito и e-commerce используются только в нескольких необязательных домашних заданиях на знакомом материале.
 
 ## Что внутри
