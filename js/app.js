@@ -267,16 +267,39 @@ function openPhase(phaseId) {
 function renderTopic(phaseId, idx, topic, ph) {
   const date  = ph.topics[idx];
   const done  = !!date;
-  const phase = PHASES.find(p => p.id === phaseId);
 
   return `
-    <div class="topic-item ${done ? 'done' : ''}" id="topic-${phaseId}-${idx}" onclick="toggleTopic(${phaseId}, ${idx})">
-      <div class="topic-checkbox">
+    <div class="topic-item ${done ? 'done' : ''}" id="topic-${phaseId}-${idx}">
+      <button class="topic-checkbox" type="button" onclick="toggleTopic(${phaseId}, ${idx})" aria-label="${done ? 'Вернуть тему в работу' : 'Отметить тему изученной'}">
         ${done ? '<i class="ti ti-check"></i>' : ''}
-      </div>
+      </button>
       <div class="topic-body">
         <div class="topic-name">${topic.name}</div>
         <div class="topic-desc">${topic.desc}</div>
+        <details class="topic-details">
+          <summary>
+            <span>Открыть микроурок</span>
+            <i class="ti ti-chevron-down"></i>
+          </summary>
+          <div class="topic-details-body">
+            <div class="topic-detail-section">
+              <div class="topic-detail-label">Что именно изучить</div>
+              <ul>${topic.learn.map(item => `<li>${item}</li>`).join('')}</ul>
+            </div>
+            <div class="topic-detail-section">
+              <div class="topic-detail-label">Материал</div>
+              <div class="topic-resource-list">${topic.resources.map(renderResource).join('')}</div>
+            </div>
+            <div class="topic-detail-section">
+              <div class="topic-detail-label">Мини-практика</div>
+              <div class="topic-detail-text">${topic.practice}</div>
+            </div>
+            <div class="topic-detail-section topic-done-criteria">
+              <div class="topic-detail-label">Можно ставить галочку, если</div>
+              <div class="topic-detail-text">${topic.done}</div>
+            </div>
+          </div>
+        </details>
         ${done ? `<div class="topic-date"><i class="ti ti-calendar" style="font-size:11px"></i> ${formatDate(date)}</div>` : ''}
       </div>
     </div>

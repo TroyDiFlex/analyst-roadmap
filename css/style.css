@@ -586,7 +586,6 @@ input, textarea {
   border-radius: var(--radius-sm);
   padding: 0.7rem 0.9rem;
   transition: border-color 0.15s;
-  cursor: pointer;
 }
 
 .topic-item:hover { border-color: var(--border-strong); }
@@ -605,6 +604,10 @@ input, textarea {
   margin-top: 1px;
   transition: all 0.15s;
   font-size: 13px;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
 }
 
 .topic-item.done .topic-checkbox {
@@ -634,10 +637,93 @@ input, textarea {
   line-height: 1.5;
 }
 
+.topic-details {
+  margin-top: 0.6rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+
+.topic-details > summary {
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.topic-details > summary::-webkit-details-marker { display: none; }
+
+.topic-details > summary .ti {
+  transition: transform 0.15s ease;
+}
+
+.topic-details[open] > summary .ti { transform: rotate(180deg); }
+
+.topic-details-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 0.7rem;
+}
+
+.topic-detail-section {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+}
+
+.topic-detail-label {
+  margin-bottom: 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.topic-detail-section ul {
+  margin: 0;
+  padding-left: 1.05rem;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.topic-detail-text {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.topic-resource-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.topic-resource-list .res-pill {
+  font-size: 0.72rem;
+  padding: 0.3rem 0.5rem;
+}
+
+.topic-done-criteria {
+  border-color: rgba(251,113,133,0.22);
+  background: rgba(251,113,133,0.045);
+}
+
 .topic-date {
   font-size: 0.72rem;
   color: var(--success);
   margin-top: 4px;
+}
+
+@media (max-width: 700px) {
+  .topic-details-body { grid-template-columns: 1fr; }
 }
 
 /* =============================================

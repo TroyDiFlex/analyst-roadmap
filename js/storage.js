@@ -5,8 +5,8 @@
 
 // URL Apps Script
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby4BjEWBgxpJMswEjC_GD1CeF5Oq9du7UyehkTI7lPSl4lVLOr4eYkJA2o9OmIJzMoh/exec';
-const LOCAL_PROGRESS_KEY = 'analyst_roadmap_progress_local';
-const REMOTE_TRACKER_KEY = 'analystRoadmapV1';
+const LOCAL_PROGRESS_KEY = 'analyst_roadmap_v2_progress_local';
+const REMOTE_TRACKER_KEY = 'analystRoadmapV2';
 let remoteEnvelope = null;
 let remoteReady = false;
 
