@@ -103,7 +103,7 @@ function renderSidebar() {
       </div>
       <div class="sidebar-nav-info">
         <div class="sidebar-nav-title">${phase.title}</div>
-        <div class="sidebar-nav-progress">${doneTopics}/${totalTopics} тем${phase.optional ? ' · опц.' : ''}</div>
+        <div class="sidebar-nav-progress">${doneTopics}/${totalTopics} тем</div>
       </div>
       ${complete ? '<span class="sidebar-nav-badge"><i class="ti ti-check"></i></span>' : ''}
     `;
@@ -119,7 +119,7 @@ function updateOverallBar() {
   const pct = Math.round((totalDone / TOTAL_TOPICS) * 100);
 
   document.getElementById('sidebar-overall-bar').style.width = pct + '%';
-  document.getElementById('sidebar-overall-text').textContent = `${totalDone} / ${TOTAL_TOPICS} топиков`;
+  document.getElementById('sidebar-overall-text').textContent = `${totalDone} / ${TOTAL_TOPICS} тем`;
 }
 
 // ──────────────────────────────────────────────
@@ -178,9 +178,10 @@ function openPhase(phaseId) {
               <i class="ti ti-clock" style="font-size:13px"></i>
               ${phase.duration}
             </span>
-            ${phase.optional ? '<span class="phase-badge-optional"><i class="ti ti-star" style="font-size:11px"></i> Необязательный</span>' : ''}
+            ${phase.track ? `<span class="phase-badge-track">${phase.track}</span>` : ''}
             ${complete ? '<span class="phase-badge-done"><i class="ti ti-check"></i> Завершён</span>' : ''}
           </div>
+          ${phase.outcome ? `<div class="phase-outcome"><span>Результат этапа</span>${phase.outcome}</div>` : ''}
         </div>
       </div>
 
@@ -196,7 +197,7 @@ function openPhase(phaseId) {
         <div class="phase-progress-item">
           <div class="phase-progress-label">Задания</div>
           <div class="phase-progress-bar-wrap">
-            <div class="phase-progress-bar" style="width:${Math.round(doneTasks/phase.tasks.length*100)}%; background:#6366f1"></div>
+            <div class="phase-progress-bar" style="width:${Math.round(doneTasks/phase.tasks.length*100)}%; background:var(--accent)"></div>
           </div>
           <div class="phase-progress-count">${doneTasks} / ${phase.tasks.length}</div>
         </div>
@@ -220,7 +221,7 @@ function openPhase(phaseId) {
       ` : ''}
 
       <!-- ПРАКТИЧЕСКИЕ ЗАДАНИЯ -->
-      <div class="section-title" style="margin-top:1rem"><i class="ti ti-pencil-check" style="color:#6366f1"></i> Практические задания</div>
+      <div class="section-title" style="margin-top:1rem"><i class="ti ti-pencil-check" style="color:var(--accent)"></i> Практические задания</div>
       <div class="tasks-list">
         ${phase.tasks.map((t, i) => renderTask(phaseId, i, t, ph)).join('')}
       </div>
@@ -229,7 +230,7 @@ function openPhase(phaseId) {
       <div class="resources-block">
         <div class="section-title"><i class="ti ti-books"></i> Ресурсы</div>
         <div class="resources-list">
-          ${phase.resources.map(r => `<span class="res-pill"><i class="ti ti-link" style="font-size:11px"></i>${r}</span>`).join('')}
+          ${phase.resources.map(renderResource).join('')}
         </div>
       </div>
 
@@ -312,8 +313,11 @@ function renderTask(phaseId, idx, task, ph) {
         <button class="task-checkbox" onclick="toggleTask(${phaseId}, ${idx})">
           ${done ? '<i class="ti ti-check"></i>' : ''}
         </button>
-        <div>
+        <div class="task-body">
+          ${task.type ? `<span class="task-type">${task.type}</span>` : ''}
           <div class="task-text">${task.text}</div>
+          ${task.deliverable ? `<div class="task-detail"><span>Результат</span>${task.deliverable}</div>` : ''}
+          ${task.criteria ? `<div class="task-detail task-criteria"><span>Готово, если</span>${task.criteria}</div>` : ''}
           ${done ? `<div class="task-date"><i class="ti ti-calendar" style="font-size:11px"></i> Выполнено ${formatDate(date)}</div>` : ''}
         </div>
       </div>
@@ -331,6 +335,13 @@ function renderTask(phaseId, idx, task, ph) {
       </div>
     </div>
   `;
+}
+
+function renderResource(resource) {
+  if (typeof resource === 'string') {
+    return `<span class="res-pill"><i class="ti ti-link"></i>${resource}</span>`;
+  }
+  return `<a class="res-pill" href="${resource.url}" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link"></i>${resource.title}</a>`;
 }
 
 // ──────────────────────────────────────────────
