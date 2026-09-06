@@ -4,13 +4,15 @@
 
 const ACCENT = "#fb7185";
 
-const lesson = (name, desc, learn, resources, practice, done) => ({
+const lesson = (name, desc, learn, resources, practice, done, course = null) => ({
   name,
   desc,
   learn,
   resources,
   practice,
-  done
+  done,
+  course,
+  status: course ? "ready" : "development"
 });
 
 const PHASES = [
@@ -22,23 +24,147 @@ const PHASES = [
     accent: ACCENT,
     optional: false,
     track: "Обязательное ядро",
+    status: "partial",
+    statusText: "Готова первая неделя",
     outcome: "Решаешь типовую junior-задачу в SQL: получаешь данные, соединяешь таблицы, считаешь метрики и проверяешь результат.",
     topics: [
       lesson(
         "Табличные данные: строка, столбец, тип, NULL и ключ",
         "Понимаешь, что хранится в таблице и что означает одна строка.",
         ["Строка как наблюдение, столбец как признак", "Число, текст, дата и логический тип", "NULL как отсутствие значения, а не ноль", "Первичный ключ и гранулярность таблицы"],
-        [{ title: "SQLBolt: Tables", url: "https://sqlbolt.com/lesson/creating_tables" }],
-        "Возьми любую таблицу заказов и письменно укажи её гранулярность, ключ, тип каждого столбца и смысл NULL.",
-        "Другой человек по твоему описанию понимает, что означает строка и может проверить уникальность ключа."
+        [{ title: "SQLBolt: введение в SQL", url: "https://sqlbolt.com/lesson/introduction" }],
+        "Разбери готовую таблицу из урока: определи смысл строки, ключ, типы столбцов и значение NULL.",
+        "Ответ совпадает с разбором, и ты можешь объяснить каждое понятие своими словами.",
+        {
+          day: 1,
+          duration: "45–60 минут",
+          goal: "Понять устройство обычной таблицы. Сегодня писать SQL и что-либо устанавливать не нужно.",
+          sections: [
+            {
+              title: "С чего мы начинаем",
+              paragraphs: [
+                "Аналитик отвечает на вопросы с помощью данных. Например: сколько было заказов, какой товар принёс больше денег, в каком городе продажи выше. Данные часто лежат в таблицах — примерно как в Excel.",
+                "Ниже готовая учебная таблица orders, то есть «заказы». Мы будем работать с ней всю первую неделю."
+              ],
+              table: {
+                headers: ["order_id", "customer", "price", "quantity", "paid", "delivery_date"],
+                rows: [
+                  ["101", "Анна", "3200", "1", "1", "2026-09-03"],
+                  ["102", "Борис", "800", "2", "1", "2026-09-04"],
+                  ["103", "Анна", "4500", "1", "0", "NULL"],
+                  ["104", "Света", "1200", "2", "1", "2026-09-07"],
+                  ["105", "Илья", "2100", "1", "1", "NULL"]
+                ]
+              }
+            },
+            {
+              title: "Строка и столбец",
+              paragraphs: [
+                "Строка — одна горизонтальная запись. В этой таблице одна строка означает один заказ. Например, строка 101 говорит: Анна заказала одну единицу товара ценой 3200 рублей.",
+                "Столбец — одна характеристика, одинаковая для всех строк. customer всегда хранит покупателя, price — цену одной единицы, quantity — количество. Слово «признак» в учебниках означает именно такую характеристику."
+              ],
+              note: "Главный вопрос к любой таблице: «Что означает одна строка?» Ответ называют гранулярностью. Гранулярность этой таблицы — один заказ."
+            },
+            {
+              title: "Типы данных",
+              bullets: [
+                "Число: price и quantity. С числами можно считать — складывать и умножать.",
+                "Текст: customer. Текст хранит слова и названия.",
+                "Дата: delivery_date. Это календарная дата, с ней можно считать дни и периоды.",
+                "Логический признак: paid отвечает на вопрос «оплачен ли заказ?». В нашей учебной базе 1 означает «да», 0 — «нет»."
+              ]
+            },
+            {
+              title: "NULL, ноль и пустая строка",
+              paragraphs: [
+                "NULL означает, что значения нет или оно пока неизвестно. У заказа 103 дата доставки NULL: из таблицы мы не знаем дату. Это не дата 0 и не доказательство, что заказ отменён.",
+                "Ноль — известное числовое значение. Пустая строка — текст нулевой длины. Они отличаются от NULL и могут требовать разных решений."
+              ]
+            },
+            {
+              title: "Ключ",
+              paragraphs: [
+                "Ключ — столбец, по которому можно однозначно найти строку. Здесь это order_id: номера заказов не повторяются. customer ключом быть не может, потому что Анна встречается дважды.",
+                "Первичный ключ — выбранный главный ключ таблицы. Его значение должно быть заполнено и уникально для каждой строки."
+              ]
+            }
+          ],
+          exercise: {
+            title: "Самостоятельная проверка",
+            steps: [
+              "Что означает одна строка таблицы orders?",
+              "Какой столбец подходит на роль первичного ключа и почему?",
+              "Назови типы customer, price, paid и delivery_date.",
+              "Что можно и чего нельзя заключить из NULL в delivery_date?",
+              "Сколько заказов в показанном фрагменте сделала Анна?"
+            ],
+            answer: [
+              "Одна строка — один заказ; это гранулярность таблицы.",
+              "order_id: он заполнен и не повторяется.",
+              "customer — текст, price — число, paid — логический признак, delivery_date — дата.",
+              "Дата неизвестна. Нельзя без дополнительных данных утверждать, что заказ не доставлен или отменён.",
+              "Анна сделала 2 заказа."
+            ]
+          }
+        }
       ),
       lesson(
         "SELECT, FROM, алиасы и вычисляемые столбцы",
         "Выбираешь нужные поля и считаешь выражения на уровне строки.",
         ["SELECT и FROM", "Алиасы через AS", "Арифметика в SELECT", "Порядок чтения результата"],
-        [{ title: "SQLBolt: SELECT queries 101", url: "https://sqlbolt.com/lesson/select_queries_introduction" }],
+        [{ title: "SQLiteOnline: выполнить запросы", url: "https://sqliteonline.com/" }, { title: "SQLBolt: SELECT queries 101", url: "https://sqlbolt.com/lesson/select_queries_introduction" }],
         "Выведи товар, цену, количество и вычисленную сумму price * quantity; дай вычислению понятное имя.",
-        "Пишешь запрос с выбором полей и выражением без копирования готового решения."
+        "Пишешь запрос с выбором полей и выражением без копирования готового решения.",
+        {
+          day: 2,
+          duration: "60–75 минут",
+          goal: "Понять, что такое SQL, запустить готовую учебную таблицу и написать первые SELECT-запросы.",
+          sections: [
+            {
+              title: "Что такое SQL и где его писать",
+              paragraphs: [
+                "База данных — программа, которая хранит таблицы и умеет быстро работать с ними. SQL — язык команд для общения с базой. Команду на SQL называют запросом.",
+                "Сегодня используем SQLiteOnline: он запускается в браузере и не требует установки. Открой ссылку ниже, выбери SQLite, вставь подготовительный код целиком и нажми Run. Код создаст учебную таблицу orders."
+              ],
+              note: "CREATE TABLE и INSERT пока учить не нужно. Это только подготовка рабочего места. Первые команды, которые мы изучаем, начинаются с SELECT."
+            },
+            {
+              title: "Подготовь таблицу orders",
+              codeLabel: "Вставь и выполни один раз",
+              code: "DROP TABLE IF EXISTS orders;\n\nCREATE TABLE orders (\n  order_id INTEGER PRIMARY KEY,\n  customer TEXT NOT NULL,\n  city TEXT NOT NULL,\n  product TEXT NOT NULL,\n  category TEXT NOT NULL,\n  price INTEGER NOT NULL,\n  quantity INTEGER NOT NULL,\n  order_date TEXT NOT NULL,\n  paid INTEGER NOT NULL,\n  delivery_date TEXT\n);\n\nINSERT INTO orders VALUES\n  (101, 'Анна',  'Москва',  'Наушники',  'Электроника', 3200, 1, '2026-09-01', 1, '2026-09-03'),\n  (102, 'Борис', 'Казань',  'Чехол',     'Аксессуары',   800, 2, '2026-09-01', 1, '2026-09-04'),\n  (103, 'Анна',  'Москва',  'Клавиатура','Электроника', 4500, 1, '2026-09-02', 0, NULL),\n  (104, 'Света', 'Тбилиси', 'Книга',     'Книги',       1200, 2, '2026-09-03', 1, '2026-09-07'),\n  (105, 'Илья',  'Москва',  'Мышь',      'Электроника', 2100, 1, '2026-09-03', 1, NULL),\n  (106, 'Борис', 'Казань',  'Книга',     'Книги',       1200, 1, '2026-09-04', 0, NULL),\n  (107, 'Света', 'Тбилиси', 'Лампа',     'Дом',         1800, 2, '2026-09-05', 1, '2026-09-08'),\n  (108, 'Олег',  'Москва',  'Чехол',     'Аксессуары',   800, 1, '2026-09-05', 1, '2026-09-09');"
+            },
+            {
+              title: "Первый запрос",
+              paragraphs: [
+                "SELECT указывает, какие столбцы показать. FROM указывает, из какой таблицы их взять. Запрос ниже читается так: «покажи номер заказа и покупателя из таблицы orders».",
+                "SQL можно писать в несколько строк. Регистр слов SELECT и FROM не влияет на результат; заглавными их пишут для удобства чтения. Точка с запятой завершает запрос."
+              ],
+              code: "SELECT order_id, customer\nFROM orders;",
+              table: {
+                headers: ["order_id", "customer"],
+                rows: [["101", "Анна"], ["102", "Борис"], ["…", "…"], ["108", "Олег"]]
+              }
+            },
+            {
+              title: "Все столбцы, вычисление и псевдоним",
+              paragraphs: [
+                "Звёздочка в SELECT означает «покажи все столбцы». Она удобна для первого осмотра: SELECT * FROM orders;",
+                "SQL умеет вычислять новые столбцы. price * quantity считает сумму заказа для каждой строки. AS задаёт результату понятное временное имя. Исходная таблица при этом не меняется."
+              ],
+              code: "SELECT\n  order_id,\n  product,\n  price,\n  quantity,\n  price * quantity AS order_total\nFROM orders;"
+            }
+          ],
+          exercise: {
+            title: "Напиши сам",
+            steps: [
+              "Выведи customer, city и product для всех заказов.",
+              "Выведи order_id, price, quantity и сумму заказа. Назови сумму total_amount.",
+              "До запуска предскажи, чему равна total_amount у заказа 102, затем проверь."
+            ],
+            solution: "SELECT customer, city, product\nFROM orders;\n\nSELECT\n  order_id,\n  price,\n  quantity,\n  price * quantity AS total_amount\nFROM orders;",
+            answer: ["У заказа 102: 800 × 2 = 1600.", "В результате второго запроса 8 строк — по одной на каждый заказ."]
+          }
+        }
       ),
       lesson(
         "WHERE: фильтрация строк",
@@ -46,7 +172,53 @@ const PHASES = [
         ["=, <>, >, >=, <, <=", "AND, OR, NOT и скобки", "IN, BETWEEN, LIKE", "IS NULL и IS NOT NULL"],
         [{ title: "SQLBolt: Constraints", url: "https://sqlbolt.com/lesson/select_queries_with_constraints" }, { title: "SQLBolt: Text constraints", url: "https://sqlbolt.com/lesson/select_queries_with_constraints_pt_2" }],
         "Составь пять выборок: период, диапазон цен, список категорий, поиск по тексту и строки с пропуском.",
-        "До запуска можешь объяснить, какие строки пройдут составное условие со скобками."
+        "До запуска можешь объяснить, какие строки пройдут составное условие со скобками.",
+        {
+          day: 3,
+          duration: "60–75 минут",
+          goal: "Отбирать нужные строки с помощью WHERE и правильно работать с несколькими условиями и NULL.",
+          sections: [
+            {
+              title: "Как работает WHERE",
+              paragraphs: [
+                "SELECT выбирает столбцы, а WHERE выбирает строки. Условие проверяется для каждой строки: если оно истинно, строка попадает в результат.",
+                "Числа пишутся без кавычек, текст и даты — в одинарных кавычках. Знак = сравнивает значения, <> означает «не равно»."
+              ],
+              code: "SELECT order_id, customer, city\nFROM orders\nWHERE city = 'Москва';",
+              note: "Если вкладка с базой была закрыта или таблица пропала, сначала снова выполни подготовительный код из дня 2."
+            },
+            {
+              title: "Сравнения и несколько условий",
+              bullets: [
+                "price >= 2000 — цена не меньше 2000.",
+                "AND — оба условия должны быть истинны.",
+                "OR — достаточно одного истинного условия.",
+                "IN ('Москва', 'Казань') — значение входит в список.",
+                "BETWEEN 1000 AND 2000 — значение от 1000 до 2000 включительно.",
+                "LIKE '%ниг%' — текст содержит сочетание «ниг». Знак % означает любое количество символов."
+              ],
+              code: "SELECT order_id, customer, price, quantity\nFROM orders\nWHERE paid = 1\n  AND price * quantity >= 2000;"
+            },
+            {
+              title: "Скобки и NULL",
+              paragraphs: [
+                "AND выполняется раньше OR. Скобки явно показывают нужную логику и защищают от ошибок. В примере попадут оплаченные заказы из Москвы или Казани.",
+                "NULL нельзя надёжно сравнивать через = или <>. Используй IS NULL для отсутствующего значения и IS NOT NULL для заполненного."
+              ],
+              code: "SELECT order_id, city, paid\nFROM orders\nWHERE paid = 1\n  AND (city = 'Москва' OR city = 'Казань');\n\nSELECT order_id, delivery_date\nFROM orders\nWHERE delivery_date IS NULL;"
+            }
+          ],
+          exercise: {
+            title: "Три выборки",
+            steps: [
+              "Найди заказы с датой заказа от 3 до 4 сентября включительно.",
+              "Найди неоплаченные заказы, у которых не заполнена дата доставки.",
+              "Найди заказы категорий «Книги» или «Дом» с суммой price * quantity не меньше 2000."
+            ],
+            solution: "SELECT *\nFROM orders\nWHERE order_date BETWEEN '2026-09-03' AND '2026-09-04';\n\nSELECT *\nFROM orders\nWHERE paid = 0 AND delivery_date IS NULL;\n\nSELECT *\nFROM orders\nWHERE category IN ('Книги', 'Дом')\n  AND price * quantity >= 2000;",
+            answer: ["Первая выборка: заказы 104, 105 и 106.", "Вторая: 103 и 106.", "Третья: 104 и 107."]
+          }
+        }
       ),
       lesson(
         "ORDER BY, LIMIT и DISTINCT",
@@ -54,7 +226,52 @@ const PHASES = [
         ["ASC и DESC", "Сортировка по нескольким полям", "LIMIT", "DISTINCT и его ограничения"],
         [{ title: "SQLBolt: Filtering and sorting", url: "https://sqlbolt.com/lesson/filtering_sorting_query_results" }],
         "Найди пять самых дорогих заказов, а затем получи список уникальных городов.",
-        "Не используешь DISTINCT для маскировки непонятно откуда взявшихся дублей."
+        "Не используешь DISTINCT для маскировки непонятно откуда взявшихся дублей.",
+        {
+          day: 4,
+          duration: "45–60 минут",
+          goal: "Упорядочивать результат, брать первые строки и получать список уникальных значений.",
+          sections: [
+            {
+              title: "ORDER BY",
+              paragraphs: [
+                "Строки результата не имеют гарантированного порядка, пока ты явно не задашь его через ORDER BY. ASC сортирует по возрастанию, DESC — по убыванию.",
+                "Сортировать можно по вычисленному псевдониму. Запрос ниже ставит самые дорогие заказы первыми."
+              ],
+              code: "SELECT\n  order_id,\n  product,\n  price * quantity AS order_total\nFROM orders\nORDER BY order_total DESC;"
+            },
+            {
+              title: "LIMIT и несколько полей сортировки",
+              paragraphs: [
+                "LIMIT оставляет указанное число первых строк после сортировки. Поэтому ORDER BY ... DESC вместе с LIMIT 3 даёт три наибольших значения.",
+                "Если значения равны, добавь второе поле сортировки. Тогда результат будет предсказуемым."
+              ],
+              code: "SELECT order_id, customer, price * quantity AS order_total\nFROM orders\nORDER BY order_total DESC, order_id ASC\nLIMIT 3;",
+              table: {
+                headers: ["order_id", "customer", "order_total"],
+                rows: [["103", "Анна", "4500"], ["107", "Света", "3600"], ["101", "Анна", "3200"]]
+              }
+            },
+            {
+              title: "DISTINCT",
+              paragraphs: [
+                "DISTINCT убирает одинаковые строки из результата. SELECT DISTINCT city возвращает перечень городов без повторов.",
+                "Это инструмент для осмысленного списка уникальных значений. Не добавляй DISTINCT только потому, что в результате неожиданно появились повторы: сначала выясни их причину."
+              ],
+              code: "SELECT DISTINCT city\nFROM orders\nORDER BY city;"
+            }
+          ],
+          exercise: {
+            title: "Сортировка и уникальные значения",
+            steps: [
+              "Покажи четыре самых дешёвых заказа по их полной сумме. При равной сумме первым должен идти меньший order_id.",
+              "Получи алфавитный список уникальных категорий.",
+              "До запуска запиши номера трёх самых дорогих заказов."
+            ],
+            solution: "SELECT order_id, price * quantity AS order_total\nFROM orders\nORDER BY order_total ASC, order_id ASC\nLIMIT 4;\n\nSELECT DISTINCT category\nFROM orders\nORDER BY category ASC;",
+            answer: ["Четыре самых дешёвых: 108 (800), 106 (1200), 102 (1600), 105 (2100).", "Категории: Аксессуары, Дом, Книги, Электроника.", "Три самых дорогих: 103, 107, 101."]
+          }
+        }
       ),
       lesson(
         "Агрегаты, GROUP BY и HAVING",
@@ -62,7 +279,61 @@ const PHASES = [
         ["COUNT, COUNT DISTINCT, SUM, AVG, MIN, MAX", "GROUP BY", "HAVING после группировки", "Влияние NULL на агрегаты"],
         [{ title: "SQLBolt: Aggregate functions", url: "https://sqlbolt.com/lesson/select_queries_with_aggregates" }, { title: "SQLBolt: HAVING", url: "https://sqlbolt.com/lesson/select_queries_with_aggregates_pt_2" }],
         "Посчитай по категориям число заказов, уникальных клиентов, выручку и средний чек; оставь категории с выручкой выше порога.",
-        "Результат вручную сходится на маленьком фрагменте данных."
+        "Результат вручную сходится на маленьком фрагменте данных.",
+        {
+          day: 5,
+          duration: "60–75 минут",
+          goal: "Считать показатели по всей таблице и по группам, а затем фильтровать готовые группы.",
+          sections: [
+            {
+              title: "Агрегатные функции",
+              paragraphs: [
+                "Агрегатная функция берёт несколько строк и возвращает одно итоговое значение. COUNT(*) считает строки, SUM складывает, AVG находит среднее, MIN и MAX — минимум и максимум.",
+                "Запрос ниже возвращает одну строку: количество заказов и общую выручку."
+              ],
+              code: "SELECT\n  COUNT(*) AS orders_count,\n  SUM(price * quantity) AS revenue\nFROM orders;",
+              table: { headers: ["orders_count", "revenue"], rows: [["8", "19400"]] }
+            },
+            {
+              title: "GROUP BY",
+              paragraphs: [
+                "GROUP BY делит строки на группы и считает итог отдельно для каждой. GROUP BY category означает: собери вместе заказы одной категории.",
+                "В SELECT обычно остаются поля группировки и агрегаты. Отдельный order_id здесь вывести нельзя: внутри одной категории несколько разных заказов."
+              ],
+              code: "SELECT\n  category,\n  COUNT(*) AS orders_count,\n  SUM(price * quantity) AS revenue\nFROM orders\nGROUP BY category\nORDER BY revenue DESC;",
+              table: {
+                headers: ["category", "orders_count", "revenue"],
+                rows: [["Электроника", "3", "9800"], ["Дом", "1", "3600"], ["Книги", "2", "3600"], ["Аксессуары", "2", "2400"]]
+              }
+            },
+            {
+              title: "WHERE и HAVING выполняют разную работу",
+              paragraphs: [
+                "WHERE отбирает исходные строки до группировки. HAVING отбирает уже посчитанные группы после GROUP BY.",
+                "Ниже WHERE сначала оставляет оплаченные заказы, затем GROUP BY считает города, а HAVING оставляет города с выручкой не меньше 3000."
+              ],
+              code: "SELECT\n  city,\n  COUNT(*) AS paid_orders,\n  SUM(price * quantity) AS paid_revenue\nFROM orders\nWHERE paid = 1\nGROUP BY city\nHAVING SUM(price * quantity) >= 3000\nORDER BY paid_revenue DESC;"
+            },
+            {
+              title: "Как NULL влияет на COUNT",
+              paragraphs: [
+                "COUNT(*) считает все строки. COUNT(delivery_date) считает только строки, где delivery_date не NULL. В нашей таблице это 8 и 5 соответственно.",
+                "SUM и AVG также пропускают NULL. Всегда уточняй, что именно оказалось в знаменателе или счётчике."
+              ],
+              code: "SELECT\n  COUNT(*) AS all_orders,\n  COUNT(delivery_date) AS orders_with_delivery_date\nFROM orders;"
+            }
+          ],
+          exercise: {
+            title: "Итог первой недели",
+            steps: [
+              "Для каждого покупателя посчитай число заказов и общую сумму заказов. Отсортируй по сумме от большей к меньшей.",
+              "Посчитай выручку только по оплаченным заказам.",
+              "Выведи категории с общей выручкой больше 3000."
+            ],
+            solution: "SELECT customer, COUNT(*) AS orders_count,\n       SUM(price * quantity) AS revenue\nFROM orders\nGROUP BY customer\nORDER BY revenue DESC;\n\nSELECT SUM(price * quantity) AS paid_revenue\nFROM orders\nWHERE paid = 1;\n\nSELECT category, SUM(price * quantity) AS revenue\nFROM orders\nGROUP BY category\nHAVING SUM(price * quantity) > 3000\nORDER BY revenue DESC;",
+            answer: ["Покупатели: Анна — 2 заказа и 7700; Света — 2 и 6000; Борис — 2 и 2800; Илья — 1 и 2100; Олег — 1 и 800.", "Оплаченная выручка — 13700.", "Категории: Электроника — 9800, Дом — 3600, Книги — 3600."]
+          }
+        }
       ),
       lesson(
         "CASE WHEN и безопасное деление",
@@ -130,7 +401,7 @@ const PHASES = [
       { title: "PostgreSQL — справочник", url: "https://www.postgresql.org/docs/current/" },
       { title: "SQLiteOnline — практика без установки", url: "https://sqliteonline.com/" }
     ],
-    note: "Темы идут от одной таблицы к нескольким. Не переходи дальше, пока мини-практика текущего пункта не получается без готового запроса.",
+    note: "Сейчас готова первая неделя — дни 1–5. Проходи их по порядку на общей таблице orders. Остальные темы этапа пока помечены «В разработке».",
     tasks: [
       { type: "Контрольная", text: "Создай учебную базу customers → orders → order_items → products и ответь на 15 бизнес-вопросов.", deliverable: "SQL-файл, схема связей и таблица ответов.", criteria: "Есть фильтры, агрегаты, JOIN, CTE и окна; ключевые итоги сверены." },
       { type: "Самопроверка", text: "Реши 30 задач: 10 базовых, 10 на JOIN/CTE и 10 на окна/даты.", deliverable: "Решения и журнал повторяющихся ошибок.", criteria: "Не менее 24 задач повторно решаются через несколько дней без готовых ответов." },
@@ -145,6 +416,8 @@ const PHASES = [
     accent: ACCENT,
     optional: false,
     track: "Обязательное ядро",
+    status: "development",
+    statusText: "В разработке",
     outcome: "Приводишь выгрузку в рабочий вид, связываешь таблицы и собираешь проверяемый разовый отчёт.",
     topics: [
       lesson(
@@ -208,6 +481,8 @@ const PHASES = [
     accent: ACCENT,
     optional: false,
     track: "Обязательное ядро",
+    status: "development",
+    statusText: "В разработке",
     outcome: "Превращаешь расплывчатый запрос в проверяемый анализ и отделяешь факт от предположения.",
     topics: [
       lesson(
@@ -287,6 +562,8 @@ const PHASES = [
     accent: ACCENT,
     optional: false,
     track: "Обязательное ядро",
+    status: "development",
+    statusText: "В разработке",
     outcome: "Собираешь компактный Power BI-отчёт с корректной моделью, мерами и понятной логикой чтения.",
     topics: [
       lesson(
@@ -350,6 +627,8 @@ const PHASES = [
     accent: ACCENT,
     optional: false,
     track: "Расширение охвата вакансий",
+    status: "development",
+    statusText: "В разработке",
     outcome: "Повторяешь типовой анализ выгрузки в pandas и оставляешь воспроизводимый ноутбук с выводами.",
     topics: [
       lesson(
@@ -421,6 +700,8 @@ const PHASES = [
     accent: ACCENT,
     optional: false,
     track: "Выход на рынок",
+    status: "development",
+    statusText: "В разработке",
     outcome: "Показываешь один законченный анализ, проходишь типовые проверки и корректируешь трек по реальным вакансиям.",
     topics: [
       lesson(

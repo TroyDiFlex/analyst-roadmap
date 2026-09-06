@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
+import { DatabaseSync } from 'node:sqlite';
+import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
 const root = new URL('../', import.meta.url);
@@ -25,12 +27,46 @@ for (const phase of PHASES) {
     for (const resource of topic.resources) {
       assert.ok(resource.title && /^https:\/\//.test(resource.url), `${topic.name}: invalid topic resource`);
     }
+    assert.ok(['ready', 'development'].includes(topic.status), `${topic.name}: invalid readiness status`);
+    if (topic.status === 'ready') {
+      assert.ok(topic.course?.day && topic.course?.duration && topic.course?.goal, `${topic.name}: incomplete course header`);
+      assert.ok(topic.course.sections?.length >= 3, `${topic.name}: course needs explanatory sections`);
+      assert.ok(topic.course.exercise?.steps?.length >= 3, `${topic.name}: course needs a concrete exercise`);
+      assert.ok(topic.course.exercise?.answer?.length >= 1, `${topic.name}: course needs self-check answers`);
+    }
   }
   for (const task of phase.tasks) assert.ok(task.type && task.text && task.deliverable && task.criteria);
   for (const resource of phase.resources) {
     assert.ok(resource.title && /^https:\/\//.test(resource.url), `${phase.title}: invalid resource`);
   }
 }
+
+const readyTopics = PHASES.flatMap(phase => phase.topics).filter(topic => topic.status === 'ready');
+assert.equal(readyTopics.length, 5, 'The first SQL week must contain five ready lessons');
+assert.equal(readyTopics.map(topic => topic.course.day).join(','), '1,2,3,4,5');
+assert.ok(PHASES[0].status === 'partial', 'SQL phase must be marked partially ready');
+assert.ok(PHASES.slice(1).every(phase => phase.status === 'development'), 'Unbuilt phases must stay in development');
+
+const sqlDatabase = new DatabaseSync(':memory:');
+const setupSql = readyTopics[1].course.sections.find(section => section.codeLabel === 'Вставь и выполни один раз')?.code;
+assert.ok(setupSql, 'SQL week needs an executable setup script');
+sqlDatabase.exec(setupSql);
+for (const topic of readyTopics.slice(1)) {
+  if (topic.course.exercise.solution) sqlDatabase.exec(topic.course.exercise.solution);
+}
+const sqlSummary = sqlDatabase.prepare(`
+  SELECT
+    COUNT(*) AS orders_count,
+    SUM(price * quantity) AS revenue,
+    SUM(CASE WHEN paid = 1 THEN price * quantity ELSE 0 END) AS paid_revenue,
+    COUNT(delivery_date) AS delivery_dates
+  FROM orders
+`).get();
+assert.equal(sqlSummary.orders_count, 8);
+assert.equal(sqlSummary.revenue, 19400);
+assert.equal(sqlSummary.paid_revenue, 13700);
+assert.equal(sqlSummary.delivery_dates, 5);
+sqlDatabase.close();
 
 assert.equal(TOTAL_TOPICS, PHASES.reduce((sum, phase) => sum + phase.topics.length, 0));
 assert.equal(TOTAL_TASKS, PHASES.reduce((sum, phase) => sum + phase.tasks.length, 0));
@@ -42,7 +78,7 @@ assert.ok(familiarTasks.length <= 6, 'Familiar-domain practice must not dominate
 assert.ok(!PHASES.some(phase => /avito|marketplace|e-commerce|маркетплейс/i.test(phase.title)), 'No niche phase is allowed');
 
 for (const path of ['js/data.js', 'js/storage.js', 'js/app.js', 'server.mjs']) {
-  const result = spawnSync(process.execPath, ['--check', new URL(path, root).pathname.slice(1)], { encoding: 'utf8' });
+  const result = spawnSync(process.execPath, ['--check', fileURLToPath(new URL(path, root))], { encoding: 'utf8' });
   assert.equal(result.status, 0, `${path}: ${result.stderr}`);
 }
 
@@ -52,7 +88,7 @@ for (const asset of ['css/style.css', 'js/data.js', 'js/storage.js', 'js/app.js'
 }
 
 const app = await readFile(new URL('js/app.js', root), 'utf8');
-for (const field of ['topic.learn', 'topic.resources', 'topic.practice', 'topic.done']) {
+for (const field of ['topic.learn', 'topic.resources', 'topic.practice', 'topic.done', 'topic.course']) {
   assert.ok(app.includes(field), `Topic UI must render ${field}`);
 }
 

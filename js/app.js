@@ -88,9 +88,11 @@ function renderSidebar() {
   nav.innerHTML = '';
 
   PHASES.forEach(phase => {
-    const doneTopics = countDone(phase.id, 'topics', phase.topics.length);
-    const totalTopics = phase.topics.length;
-    const complete = doneTopics === totalTopics;
+    const ph = getPhaseProgress(phase.id);
+    const readyTopics = phase.topics.filter(topic => topic.status === 'ready').length;
+    const doneTopics = countReadyTopicsDone(phase, ph);
+    const complete = readyTopics > 0 && doneTopics === readyTopics;
+    const status = getPhaseStatus(phase);
 
     const btn = document.createElement('button');
     btn.className = 'sidebar-nav-item' + (activePhaseId === phase.id ? ' active' : '');
@@ -103,9 +105,13 @@ function renderSidebar() {
       </div>
       <div class="sidebar-nav-info">
         <div class="sidebar-nav-title">${phase.title}</div>
-        <div class="sidebar-nav-progress">${doneTopics}/${totalTopics} тем</div>
+        <div class="sidebar-nav-progress">
+          ${readyTopics ? `${doneTopics}/${readyTopics} готовых уроков` : 'Материалы в разработке'}
+        </div>
       </div>
-      ${complete ? '<span class="sidebar-nav-badge"><i class="ti ti-check"></i></span>' : ''}
+      ${complete
+        ? '<span class="sidebar-nav-badge"><i class="ti ti-check"></i></span>'
+        : `<span class="sidebar-status-dot ${status.className}" title="${status.text}"></span>`}
     `;
 
     nav.appendChild(btn);
@@ -115,21 +121,23 @@ function renderSidebar() {
 }
 
 function updateOverallBar() {
-  const totalDone = PHASES.reduce((s, p) => s + countDone(p.id, 'topics', p.topics.length), 0);
-  const pct = Math.round((totalDone / TOTAL_TOPICS) * 100);
+  const totalReady = PHASES.reduce((sum, phase) => sum + phase.topics.filter(topic => topic.status === 'ready').length, 0);
+  const totalDone = PHASES.reduce((sum, phase) => sum + countReadyTopicsDone(phase, getPhaseProgress(phase.id)), 0);
+  const pct = totalReady ? Math.round((totalDone / totalReady) * 100) : 0;
 
   document.getElementById('sidebar-overall-bar').style.width = pct + '%';
-  document.getElementById('sidebar-overall-text').textContent = `${totalDone} / ${TOTAL_TOPICS} тем`;
+  document.getElementById('sidebar-overall-text').textContent = `${totalDone} / ${totalReady} готовых уроков`;
 }
 
 // ──────────────────────────────────────────────
 //  ШАПКА
 // ──────────────────────────────────────────────
 function updateHeaderStats() {
-  const totalDone = PHASES.reduce((s, p) => s + countDone(p.id, 'topics', p.topics.length), 0);
-  const pct = Math.round((totalDone / TOTAL_TOPICS) * 100);
+  const totalReady = PHASES.reduce((sum, phase) => sum + phase.topics.filter(topic => topic.status === 'ready').length, 0);
+  const totalDone = PHASES.reduce((sum, phase) => sum + countReadyTopicsDone(phase, getPhaseProgress(phase.id)), 0);
+  const pct = totalReady ? Math.round((totalDone / totalReady) * 100) : 0;
 
-  document.getElementById('header-progress-text').textContent = `${totalDone} из ${TOTAL_TOPICS} тем`;
+  document.getElementById('header-progress-text').textContent = `${totalDone} из ${totalReady} готовых уроков`;
   document.getElementById('header-progress-bar').style.width  = pct + '%';
 
   if (progress && progress.started) {
@@ -157,9 +165,10 @@ function openPhase(phaseId) {
   if (!phase) return;
 
   const ph = getPhaseProgress(phaseId);
-  const doneTopics = countDone(phaseId, 'topics', phase.topics.length);
-  const doneTasks  = countDone(phaseId, 'tasks',  phase.tasks.length);
-  const complete   = doneTopics === phase.topics.length;
+  const readyTopics = phase.topics.filter(topic => topic.status === 'ready').length;
+  const doneTopics = countReadyTopicsDone(phase, ph);
+  const complete = readyTopics > 0 && doneTopics === readyTopics;
+  const status = getPhaseStatus(phase);
 
   const main = document.getElementById('main-content');
   main.innerHTML = `
@@ -179,6 +188,7 @@ function openPhase(phaseId) {
               ${phase.duration}
             </span>
             ${phase.track ? `<span class="phase-badge-track">${phase.track}</span>` : ''}
+            <span class="phase-status ${status.className}"><i class="ti ${status.icon}"></i>${status.text}</span>
             ${complete ? '<span class="phase-badge-done"><i class="ti ti-check"></i> Завершён</span>' : ''}
           </div>
           ${phase.outcome ? `<div class="phase-outcome"><span>Результат этапа</span>${phase.outcome}</div>` : ''}
@@ -188,18 +198,18 @@ function openPhase(phaseId) {
       <!-- ПРОГРЕСС ЭТАПА -->
       <div class="phase-progress-block">
         <div class="phase-progress-item">
-          <div class="phase-progress-label">Темы</div>
+          <div class="phase-progress-label">Готовые уроки</div>
           <div class="phase-progress-bar-wrap">
-            <div class="phase-progress-bar" style="width:${Math.round(doneTopics/phase.topics.length*100)}%; background:${phase.accent}"></div>
+            <div class="phase-progress-bar" style="width:${readyTopics ? Math.round(doneTopics/readyTopics*100) : 0}%; background:${phase.accent}"></div>
           </div>
-          <div class="phase-progress-count">${doneTopics} / ${phase.topics.length}</div>
+          <div class="phase-progress-count">${readyTopics ? `${doneTopics} / ${readyTopics}` : 'Пока нет готовых уроков'}</div>
         </div>
         <div class="phase-progress-item">
-          <div class="phase-progress-label">Задания</div>
+          <div class="phase-progress-label">Готовность программы</div>
           <div class="phase-progress-bar-wrap">
-            <div class="phase-progress-bar" style="width:${Math.round(doneTasks/phase.tasks.length*100)}%; background:var(--accent)"></div>
+            <div class="phase-progress-bar" style="width:${Math.round(readyTopics/phase.topics.length*100)}%; background:var(--accent)"></div>
           </div>
-          <div class="phase-progress-count">${doneTasks} / ${phase.tasks.length}</div>
+          <div class="phase-progress-count">${readyTopics} из ${phase.topics.length} тем оформлены как уроки</div>
         </div>
       </div>
 
@@ -207,7 +217,7 @@ function openPhase(phaseId) {
       ${phase.note ? `<div class="phase-note" style="border-color:${phase.accent}">${phase.note}</div>` : ''}
 
       <!-- ТЕМЫ -->
-      <div class="section-title"><i class="ti ti-list-check"></i> Темы для изучения</div>
+      <div class="section-title"><i class="ti ti-list-check"></i> Учебные материалы</div>
       <div class="topics-list">
         ${phase.topics.map((t, i) => renderTopic(phaseId, i, t, ph)).join('')}
       </div>
@@ -221,7 +231,7 @@ function openPhase(phaseId) {
       ` : ''}
 
       <!-- ПРАКТИЧЕСКИЕ ЗАДАНИЯ -->
-      <div class="section-title" style="margin-top:1rem"><i class="ti ti-pencil-check" style="color:var(--accent)"></i> Практические задания</div>
+      <div class="section-title" style="margin-top:1rem"><i class="ti ti-pencil-check" style="color:var(--accent)"></i> Итоговые проекты · в разработке</div>
       <div class="tasks-list">
         ${phase.tasks.map((t, i) => renderTask(phaseId, i, t, ph)).join('')}
       </div>
@@ -267,43 +277,144 @@ function openPhase(phaseId) {
 function renderTopic(phaseId, idx, topic, ph) {
   const date  = ph.topics[idx];
   const done  = !!date;
+  const isReady = topic.status === 'ready';
 
   return `
-    <div class="topic-item ${done ? 'done' : ''}" id="topic-${phaseId}-${idx}">
-      <button class="topic-checkbox" type="button" onclick="toggleTopic(${phaseId}, ${idx})" aria-label="${done ? 'Вернуть тему в работу' : 'Отметить тему изученной'}">
+    <div class="topic-item ${done ? 'done' : ''} ${isReady ? 'ready' : 'development'}" id="topic-${phaseId}-${idx}">
+      <button class="topic-checkbox" type="button" onclick="toggleTopic(${phaseId}, ${idx})" ${isReady ? '' : 'disabled'} aria-label="${isReady ? (done ? 'Вернуть урок в работу' : 'Отметить урок изученным') : 'Материал ещё в разработке'}">
         ${done ? '<i class="ti ti-check"></i>' : ''}
       </button>
       <div class="topic-body">
-        <div class="topic-name">${topic.name}</div>
+        <div class="topic-title-row">
+          <div class="topic-name">${topic.name}</div>
+          ${isReady
+            ? `<span class="topic-status ready"><i class="ti ti-book-2"></i>День ${topic.course.day} · ${topic.course.duration}</span>`
+            : '<span class="topic-status development"><i class="ti ti-tool"></i>В разработке</span>'}
+        </div>
         <div class="topic-desc">${topic.desc}</div>
         <details class="topic-details">
           <summary>
-            <span>Открыть микроурок</span>
+            <span>${isReady ? 'Начать урок' : 'Посмотреть план темы'}</span>
             <i class="ti ti-chevron-down"></i>
           </summary>
-          <div class="topic-details-body">
-            <div class="topic-detail-section">
-              <div class="topic-detail-label">Что именно изучить</div>
-              <ul>${topic.learn.map(item => `<li>${item}</li>`).join('')}</ul>
-            </div>
-            <div class="topic-detail-section">
-              <div class="topic-detail-label">Материал</div>
-              <div class="topic-resource-list">${topic.resources.map(renderResource).join('')}</div>
-            </div>
-            <div class="topic-detail-section">
-              <div class="topic-detail-label">Мини-практика</div>
-              <div class="topic-detail-text">${topic.practice}</div>
-            </div>
-            <div class="topic-detail-section topic-done-criteria">
-              <div class="topic-detail-label">Можно ставить галочку, если</div>
-              <div class="topic-detail-text">${topic.done}</div>
-            </div>
-          </div>
+          ${isReady ? renderCourseLesson(topic) : renderDevelopmentTopic(topic)}
         </details>
         ${done ? `<div class="topic-date"><i class="ti ti-calendar" style="font-size:11px"></i> ${formatDate(date)}</div>` : ''}
       </div>
     </div>
   `;
+}
+
+function renderCourseLesson(topic) {
+  const course = topic.course;
+  return `
+    <div class="course-lesson">
+      <div class="course-goal">
+        <i class="ti ti-target-arrow"></i>
+        <div><span>Цель урока</span>${course.goal}</div>
+      </div>
+      ${course.sections.map(renderCourseSection).join('')}
+      ${renderCourseExercise(course.exercise)}
+      <div class="course-footer-grid">
+        <div class="topic-detail-section">
+          <div class="topic-detail-label">Дополнительный материал</div>
+          <div class="topic-resource-list">${topic.resources.map(renderResource).join('')}</div>
+        </div>
+        <div class="topic-detail-section topic-done-criteria">
+          <div class="topic-detail-label">Можно ставить галочку, если</div>
+          <div class="topic-detail-text">${topic.done}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCourseSection(section) {
+  return `
+    <section class="course-section">
+      <h4>${section.title}</h4>
+      ${section.paragraphs ? section.paragraphs.map(paragraph => `<p>${paragraph}</p>`).join('') : ''}
+      ${section.bullets ? `<ul>${section.bullets.map(item => `<li>${item}</li>`).join('')}</ul>` : ''}
+      ${section.code ? renderCodeBlock(section.code, section.codeLabel) : ''}
+      ${section.table ? renderCourseTable(section.table) : ''}
+      ${section.note ? `<div class="course-note"><i class="ti ti-bulb"></i><span>${section.note}</span></div>` : ''}
+    </section>
+  `;
+}
+
+function renderCourseTable(table) {
+  return `
+    <div class="course-table-wrap">
+      <table class="course-table">
+        <thead><tr>${table.headers.map(header => `<th>${header}</th>`).join('')}</tr></thead>
+        <tbody>${table.rows.map(row => `<tr>${row.map(cell => `<td class="${cell === 'NULL' ? 'is-null' : ''}">${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderCodeBlock(code, label = 'SQL') {
+  return `
+    <div class="course-code">
+      <div class="course-code-label">${label}</div>
+      <pre><code>${escapeHtml(code)}</code></pre>
+    </div>
+  `;
+}
+
+function renderCourseExercise(exercise) {
+  return `
+    <section class="course-exercise">
+      <div class="course-exercise-title"><i class="ti ti-pencil"></i>${exercise.title}</div>
+      <ol>${exercise.steps.map(step => `<li>${step}</li>`).join('')}</ol>
+      ${exercise.solution ? `
+        <details class="course-answer">
+          <summary>Показать решение SQL</summary>
+          ${renderCodeBlock(exercise.solution, 'Решение')}
+        </details>
+      ` : ''}
+      <details class="course-answer">
+        <summary>Проверить ответ</summary>
+        <ul>${exercise.answer.map(item => `<li>${item}</li>`).join('')}</ul>
+      </details>
+    </section>
+  `;
+}
+
+function renderDevelopmentTopic(topic) {
+  return `
+    <div class="development-panel">
+      <div class="development-message">
+        <i class="ti ti-tool"></i>
+        <div><strong>Это пока план, а не готовый урок.</strong><span>Определения, учебные данные, пошаговая практика и ответы ещё не добавлены. Галочка отключена.</span></div>
+      </div>
+      <div class="topic-details-body">
+        <div class="topic-detail-section">
+          <div class="topic-detail-label">Что войдёт в урок</div>
+          <ul>${topic.learn.map(item => `<li>${item}</li>`).join('')}</ul>
+        </div>
+        <div class="topic-detail-section">
+          <div class="topic-detail-label">Планируемый материал</div>
+          <div class="topic-resource-list">${topic.resources.map(renderResource).join('')}</div>
+        </div>
+        <div class="topic-detail-section">
+          <div class="topic-detail-label">Черновик практики</div>
+          <div class="topic-detail-text">${topic.practice}</div>
+        </div>
+        <div class="topic-detail-section topic-done-criteria">
+          <div class="topic-detail-label">Будущий критерий</div>
+          <div class="topic-detail-text">${topic.done}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
 }
 
 // ──────────────────────────────────────────────
@@ -329,15 +440,19 @@ function renderTask(phaseId, idx, task, ph) {
   const date = ph.tasks[idx];
   const done = !!date;
   const note = ph.notes[`task_${idx}`] || '';
+  const isReady = task.status === 'ready';
 
   return `
-    <div class="task-card ${done ? 'done' : ''}" id="task-card-${phaseId}-${idx}">
+    <div class="task-card ${done ? 'done' : ''} ${isReady ? '' : 'development'}" id="task-card-${phaseId}-${idx}">
       <div class="task-top">
-        <button class="task-checkbox" onclick="toggleTask(${phaseId}, ${idx})">
+        <button class="task-checkbox" onclick="toggleTask(${phaseId}, ${idx})" ${isReady ? '' : 'disabled'} aria-label="${isReady ? 'Отметить задание выполненным' : 'Задание ещё в разработке'}">
           ${done ? '<i class="ti ti-check"></i>' : ''}
         </button>
         <div class="task-body">
-          ${task.type ? `<span class="task-type">${task.type}</span>` : ''}
+          <div class="task-type-row">
+            ${task.type ? `<span class="task-type">${task.type}</span>` : ''}
+            ${isReady ? '' : '<span class="topic-status development"><i class="ti ti-tool"></i>В разработке</span>'}
+          </div>
           <div class="task-text">${task.text}</div>
           ${task.deliverable ? `<div class="task-detail"><span>Результат</span>${task.deliverable}</div>` : ''}
           ${task.criteria ? `<div class="task-detail task-criteria"><span>Готово, если</span>${task.criteria}</div>` : ''}
@@ -371,6 +486,8 @@ function renderResource(resource) {
 //  ПЕРЕКЛЮЧЕНИЕ ГАЛОЧЕК
 // ──────────────────────────────────────────────
 function toggleTopic(phaseId, idx) {
+  const phase = PHASES.find(item => item.id === phaseId);
+  if (!phase || phase.topics[idx]?.status !== 'ready') return;
   const ph   = getPhaseProgress(phaseId);
   const done = !!ph.topics[idx];
 
@@ -386,6 +503,8 @@ function toggleTopic(phaseId, idx) {
 }
 
 function toggleTask(phaseId, idx) {
+  const phase = PHASES.find(item => item.id === phaseId);
+  if (!phase || phase.tasks[idx]?.status !== 'ready') return;
   const ph   = getPhaseProgress(phaseId);
   const done = !!ph.tasks[idx];
 
@@ -454,19 +573,27 @@ function getPhaseProgress(phaseId) {
   return progress.phases[phaseId];
 }
 
-function countDone(phaseId, type, total) {
-  const ph = progress?.phases?.[phaseId];
-  if (!ph || !ph[type]) return 0;
-  let count = 0;
-  for (let i = 0; i < total; i++) {
-    if (ph[type][i]) count++;
+function countReadyTopicsDone(phase, phaseProgress) {
+  if (!phaseProgress?.topics) return 0;
+  return phase.topics.reduce((count, topic, idx) => {
+    return count + (topic.status === 'ready' && phaseProgress.topics[idx] ? 1 : 0);
+  }, 0);
+}
+
+function getPhaseStatus(phase) {
+  if (phase.status === 'partial') {
+    return { className: 'partial', icon: 'ti-progress', text: phase.statusText || 'Частично готово' };
   }
-  return count;
+  if (phase.status === 'ready') {
+    return { className: 'ready', icon: 'ti-circle-check', text: phase.statusText || 'Готово' };
+  }
+  return { className: 'development', icon: 'ti-tool', text: phase.statusText || 'В разработке' };
 }
 
 function isPhaseComplete(phaseId) {
   const phase = PHASES.find(p => p.id === phaseId);
-  return countDone(phaseId, 'topics', phase.topics.length) === phase.topics.length;
+  const readyTopics = phase.topics.filter(topic => topic.status === 'ready').length;
+  return readyTopics > 0 && countReadyTopicsDone(phase, getPhaseProgress(phaseId)) === readyTopics;
 }
 
 function formatDate(isoDate) {
