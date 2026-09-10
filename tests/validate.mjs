@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
-import { DatabaseSync } from 'node:sqlite';
+import { validateSqlCourse } from './sql-course.mjs';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
@@ -42,31 +42,12 @@ for (const phase of PHASES) {
 }
 
 const readyTopics = PHASES.flatMap(phase => phase.topics).filter(topic => topic.status === 'ready');
-assert.equal(readyTopics.length, 5, 'The first SQL week must contain five ready lessons');
-assert.equal(readyTopics.map(topic => topic.course.day).join(','), '1,2,3,4,5');
+assert.equal(readyTopics.length, 12, 'SQL must contain twelve ready lessons');
+assert.equal(readyTopics.map(topic => topic.course.day).join(','), '1,2,3,4,5,6,7,8,9,10,11,12');
 assert.ok(PHASES[0].status === 'partial', 'SQL phase must be marked partially ready');
 assert.ok(PHASES.slice(1).every(phase => phase.status === 'development'), 'Unbuilt phases must stay in development');
 
-const sqlDatabase = new DatabaseSync(':memory:');
-const setupSql = readyTopics[1].course.sections.find(section => section.codeLabel === 'Вставь и выполни один раз')?.code;
-assert.ok(setupSql, 'SQL week needs an executable setup script');
-sqlDatabase.exec(setupSql);
-for (const topic of readyTopics.slice(1)) {
-  if (topic.course.exercise.solution) sqlDatabase.exec(topic.course.exercise.solution);
-}
-const sqlSummary = sqlDatabase.prepare(`
-  SELECT
-    COUNT(*) AS orders_count,
-    SUM(price * quantity) AS revenue,
-    SUM(CASE WHEN paid = 1 THEN price * quantity ELSE 0 END) AS paid_revenue,
-    COUNT(delivery_date) AS delivery_dates
-  FROM orders
-`).get();
-assert.equal(sqlSummary.orders_count, 8);
-assert.equal(sqlSummary.revenue, 19400);
-assert.equal(sqlSummary.paid_revenue, 13700);
-assert.equal(sqlSummary.delivery_dates, 5);
-sqlDatabase.close();
+validateSqlCourse(readyTopics);
 
 assert.equal(TOTAL_TOPICS, PHASES.reduce((sum, phase) => sum + phase.topics.length, 0));
 assert.equal(TOTAL_TASKS, PHASES.reduce((sum, phase) => sum + phase.tasks.length, 0));
