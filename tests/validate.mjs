@@ -44,12 +44,14 @@ for (const phase of PHASES) {
 }
 
 const readyTopics = PHASES.flatMap(phase => phase.topics).filter(topic => topic.status === 'ready');
-assert.equal(readyTopics.length, 12, 'SQL must contain twelve ready lessons');
-assert.equal(readyTopics.map(topic => topic.course.day).join(','), '1,2,3,4,5,6,7,8,9,10,11,12');
+assert.equal(readyTopics.length, 15, 'Twelve SQL and three Sheets lessons must be ready');
+assert.equal(readyTopics.map(topic => topic.course.day).join(','), '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15');
 assert.ok(PHASES[0].status === 'ready', 'SQL lessons and assessments must be ready');
-assert.ok(PHASES.slice(1).every(phase => phase.status === 'development'), 'Unbuilt phases must stay in development');
+assert.equal(PHASES[1].status, 'partial');
+assert.equal(PHASES[1].topics.map(topic => topic.status).join(','), 'ready,ready,ready,development,development');
+assert.ok(PHASES.slice(2).every(phase => phase.status === 'development'), 'Unbuilt phases must stay in development');
 
-validateSqlCourse(readyTopics);
+validateSqlCourse(PHASES[0].topics);
 validateSqlAssessments(PHASES[0], context.roadmap.sqlAssessmentSetup);
 
 assert.equal(TOTAL_TOPICS, PHASES.reduce((sum, phase) => sum + phase.topics.length, 0));

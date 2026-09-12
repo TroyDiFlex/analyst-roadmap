@@ -370,7 +370,7 @@ function renderCourseExercise(exercise) {
       <ol>${exercise.steps.map(step => `<li>${step}</li>`).join('')}</ol>
       ${exercise.solution ? `
         <details class="course-answer">
-          <summary>Показать решение SQL</summary>
+          <summary>Показать решение</summary>
           ${renderCodeBlock(exercise.solution, 'Решение')}
         </details>
       ` : ''}
