@@ -91,7 +91,7 @@ function renderSidebar() {
     const ph = getPhaseProgress(phase.id);
     const readyTopics = phase.topics.filter(topic => topic.status === 'ready').length;
     const doneTopics = countReadyTopicsDone(phase, ph);
-    const complete = readyTopics > 0 && doneTopics === readyTopics;
+    const complete = isPhaseComplete(phase.id);
     const status = getPhaseStatus(phase);
 
     const btn = document.createElement('button');
@@ -106,7 +106,7 @@ function renderSidebar() {
       <div class="sidebar-nav-info">
         <div class="sidebar-nav-title">${phase.title}</div>
         <div class="sidebar-nav-progress">
-          ${readyTopics ? `${doneTopics}/${readyTopics} готовых уроков` : 'Материалы в разработке'}
+          ${readyTopics ? `${doneTopics}/${readyTopics} готовых уроков${taskProgressLabel(phase, ph)}` : 'Материалы в разработке'}
         </div>
       </div>
       ${complete
@@ -167,7 +167,7 @@ function openPhase(phaseId) {
   const ph = getPhaseProgress(phaseId);
   const readyTopics = phase.topics.filter(topic => topic.status === 'ready').length;
   const doneTopics = countReadyTopicsDone(phase, ph);
-  const complete = readyTopics > 0 && doneTopics === readyTopics;
+  const complete = isPhaseComplete(phaseId);
   const status = getPhaseStatus(phase);
 
   const main = document.getElementById('main-content');
@@ -231,7 +231,7 @@ function openPhase(phaseId) {
       ` : ''}
 
       <!-- ПРАКТИЧЕСКИЕ ЗАДАНИЯ -->
-      <div class="section-title" style="margin-top:1rem"><i class="ti ti-pencil-check" style="color:var(--accent)"></i> Итоговые проекты · в разработке</div>
+      <div class="section-title" style="margin-top:1rem"><i class="ti ti-pencil-check" style="color:var(--accent)"></i> Практические задания${phase.tasks.some(task => task.status === 'ready') ? taskProgressLabel(phase, ph) : ' · в разработке'}</div>
       <div class="tasks-list">
         ${phase.tasks.map((t, i) => renderTask(phaseId, i, t, ph)).join('')}
       </div>
@@ -346,9 +346,10 @@ function renderCourseTable(table) {
   return `
     <div class="course-table-wrap">
       <table class="course-table">
-        <thead><tr>${table.headers.map(header => `<th>${header}</th>`).join('')}</tr></thead>
-        <tbody>${table.rows.map(row => `<tr>${row.map(cell => `<td class="${cell === 'NULL' ? 'is-null' : ''}">${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+        <thead><tr>${table.headers.map(header => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead>
+        <tbody>${table.rows.map(row => `<tr>${row.map(cell => `<td class="${cell === null || cell === 'NULL' ? 'is-null' : ''}">${escapeHtml(cell === null ? 'NULL' : cell)}</td>`).join('')}</tr>`).join('')}</tbody>
       </table>
+      ${table.rows.length ? '' : '<p class="course-empty-result">0 строк — пустой результат.</p>'}
     </div>
   `;
 }
@@ -438,9 +439,9 @@ function renderHint(hint, idx, phaseId) {
 // ──────────────────────────────────────────────
 function renderTask(phaseId, idx, task, ph) {
   const date = ph.tasks[idx];
-  const done = !!date;
-  const note = ph.notes[`task_${idx}`] || '';
   const isReady = task.status === 'ready';
+  const done = isReady && !!date;
+  const note = ph.notes[`task_${idx}`] || '';
 
   return `
     <div class="task-card ${done ? 'done' : ''} ${isReady ? '' : 'development'}" id="task-card-${phaseId}-${idx}">
@@ -459,6 +460,7 @@ function renderTask(phaseId, idx, task, ph) {
           ${done ? `<div class="task-date"><i class="ti ti-calendar" style="font-size:11px"></i> Выполнено ${formatDate(date)}</div>` : ''}
         </div>
       </div>
+      ${isReady && task.groups ? renderAssessment(task, phaseId) : ''}
       <div class="note-container" id="task-note-container-${phaseId}-${idx}">
         <div class="note-view-mode" onclick="enableNoteEditMode('task', ${phaseId}, ${idx})">
           ${renderMarkdownNote(note, 'task', phaseId, idx)}
@@ -472,6 +474,46 @@ function renderTask(phaseId, idx, task, ph) {
         >${note}</textarea>
       </div>
     </div>
+  `;
+}
+
+function renderAssessment(task, phaseId) {
+  const phase = PHASES.find(item => item.id === phaseId);
+  let number = 0;
+  return `
+    <details class="assessment-details">
+      <summary>Открыть условия и задания${task.optional ? ' · необязательно' : ''}</summary>
+      ${task.sections.map(renderCourseSection).join('')}
+      <details class="course-answer">
+        <summary>Подготовить исходные данные SQLite</summary>
+        <p class="course-empty-result">Выполни один раз в отдельной учебной базе. Повторный запуск сбрасывает ${task.dataset === 'orders' ? 'orders, customers, order_customers и payments' : 'listings'} к исходным данным. Сохрани свои запросы перед заменой текста в редакторе. Самостоятельно писать CREATE и INSERT не требуется.</p>
+        ${renderCodeBlock(sqlAssessmentSetup(task, phase.topics), 'Подготовка — скопируй целиком')}
+      </details>
+      ${task.groups.map(group => `
+        <section class="assessment-group">
+          <h4>${escapeHtml(group.title)}</h4>
+          ${group.questions.map(question => `
+            <section class="course-exercise">
+              <h5 class="course-exercise-title">${++number}. ${escapeHtml(question.title)}</h5>
+              <p>${escapeHtml(question.prompt)}</p>
+              <details class="course-answer">
+                <summary>Проверить ответ</summary>
+                ${renderCourseTable(question.table)}
+                ${question.explanation ? `<p class="course-empty-result">${escapeHtml(question.explanation)}</p>` : ''}
+              </details>
+              <details class="course-answer">
+                <summary>Показать решение SQL</summary>
+                ${renderCodeBlock(question.solution, 'Один из вариантов решения')}
+              </details>
+            </section>
+          `).join('')}
+        </section>
+      `).join('')}
+      ${task.review ? `<details class="course-answer">
+        <summary>Проверить письменный разбор</summary>
+        <ul>${task.review.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+      </details>` : ''}
+    </details>
   `;
 }
 
@@ -592,8 +634,19 @@ function getPhaseStatus(phase) {
 
 function isPhaseComplete(phaseId) {
   const phase = PHASES.find(p => p.id === phaseId);
-  const readyTopics = phase.topics.filter(topic => topic.status === 'ready').length;
-  return readyTopics > 0 && countReadyTopicsDone(phase, getPhaseProgress(phaseId)) === readyTopics;
+  if (!phase || phase.status !== 'ready') return false;
+  const ph = getPhaseProgress(phaseId);
+  return phase.topics.length > 0
+    && countReadyTopicsDone(phase, ph) === phase.topics.length
+    && phase.tasks.every((task, idx) => task.optional || (task.status === 'ready' && ph.tasks[idx]));
+}
+
+function taskProgressLabel(phase, ph) {
+  const required = phase.tasks.filter(task => task.status === 'ready' && !task.optional);
+  if (!required.length) return '';
+  const done = phase.tasks.reduce((sum, task, idx) =>
+    sum + (task.status === 'ready' && !task.optional && ph.tasks[idx] ? 1 : 0), 0);
+  return ` · ${done}/${required.length} обязательных заданий`;
 }
 
 function formatDate(isoDate) {

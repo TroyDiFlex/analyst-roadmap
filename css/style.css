@@ -1090,6 +1090,15 @@ input, textarea {
 
 .task-card.development { border-style: dashed; }
 
+.assessment-details { margin-top: 1rem; min-width: 0; }
+.assessment-details > summary { cursor: pointer; color: var(--text-primary); }
+.assessment-group { margin-top: 1.2rem; }
+.assessment-group > h4 { font-size: 0.9rem; margin-bottom: 0.6rem; }
+.assessment-group .course-exercise + .course-exercise { margin-top: 0.8rem; }
+.assessment-details p,
+.assessment-details li { font-size: 0.85rem; line-height: 1.65; color: var(--text-secondary); }
+.course-empty-result { padding: 0.6rem; }
+
 .task-top {
   display: flex;
   align-items: flex-start;
